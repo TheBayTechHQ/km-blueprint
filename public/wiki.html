@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Larkspur Intranet - Search</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Verdana, Geneva, Tahoma, sans-serif; font-size: 13px; color: #222; background: #E9EDF2; }
+  .top { background: linear-gradient(#3C6DA8, #2A568C); color: #fff; padding: 10px 18px; display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #1D3E69; }
+  .top b { font-size: 17px; letter-spacing: 0.2px; }
+  .top span { font-size: 11px; opacity: 0.85; }
+  .top a { margin-left: auto; color: #DCE8F7; font-size: 11px; }
+  .wrap { display: flex; gap: 16px; padding: 16px 18px; max-width: 1240px; margin: 0 auto; }
+  .nav { width: 210px; flex: none; background: #fff; border: 1px solid #B9C4D2; padding: 10px 12px; height: fit-content; }
+  .nav h3 { margin: 0 0 8px; font-size: 12px; color: #2A568C; border-bottom: 1px solid #D5DCE6; padding-bottom: 6px; }
+  .nav ul { margin: 0 0 12px; padding-left: 16px; line-height: 1.9; color: #1A4B8C; }
+  .nav li { text-decoration: underline; cursor: default; }
+  .main { flex: 1; min-width: 0; background: #fff; border: 1px solid #B9C4D2; padding: 16px 20px 24px; min-height: 560px; }
+  h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 22px; font-weight: normal; margin: 0 0 12px; color: #1D3E69; }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid #9FB0C6; margin-bottom: 14px; }
+  .tabs button { font: inherit; padding: 7px 14px; border: 1px solid #9FB0C6; border-bottom: none; background: #E4EAF2; color: #333; cursor: pointer; border-radius: 3px 3px 0 0; }
+  .tabs button[aria-selected="true"] { background: #fff; font-weight: bold; position: relative; top: 1px; }
+  form { display: flex; gap: 6px; margin-bottom: 6px; }
+  input[type="search"] { flex: 1; font: inherit; font-size: 15px; padding: 7px 8px; border: 1px solid #7F93AD; border-radius: 2px; }
+  form button { font: inherit; padding: 6px 16px; border: 1px solid #6B7F99; background: linear-gradient(#FDFDFD, #DDE3EB); border-radius: 3px; cursor: pointer; }
+  .hint { color: #666; font-size: 11px; margin-bottom: 16px; }
+  .count { background: #F3F5F8; border: 1px solid #D5DCE6; padding: 7px 10px; margin-bottom: 12px; }
+  .none { border: 1px solid #E0B4B4; background: #FFF4F4; color: #8C1D1D; padding: 14px 16px; }
+  .none b { font-size: 15px; display: block; margin-bottom: 6px; }
+  .hit { padding: 10px 0 12px; border-bottom: 1px dotted #B9C4D2; }
+  .hit a { color: #1A4B8C; font-size: 15px; text-decoration: underline; }
+  .hit p { margin: 5px 0 4px; line-height: 1.55; }
+  .hit small { color: #557; }
+  mark { background: #FFF2A8; }
+</style>
+</head>
+<body>
+<div class="top">
+  <b>Larkspur Intranet</b><span>Company Wiki &amp; Documents</span>
+  <a href="/">Try the new Ask &raquo;</a>
+</div>
+<div class="wrap">
+  <div class="nav">
+    <h3>Spaces</h3>
+    <ul><li>People &amp; HR</li><li>Finance</li><li>Engineering</li><li>Support</li><li>Office</li></ul>
+    <h3>Other places to look</h3>
+    <ul><li>Shared drive</li><li>Ticket system</li><li>Chat history</li><li>Ask a coworker</li></ul>
+  </div>
+  <div class="main">
+    <h1>Search</h1>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-source="Wiki" aria-selected="true">Wiki</button>
+      <button role="tab" data-source="Handbook" aria-selected="false">Shared drive</button>
+      <button role="tab" data-source="Ticket" aria-selected="false">Tickets</button>
+      <button role="tab" data-source="Chat" aria-selected="false">Chat</button>
+    </div>
+    <form id="form">
+      <input id="q" type="search" placeholder="Enter keywords" autocomplete="off" aria-label="Search keywords">
+      <button type="submit">Search</button>
+    </form>
+    <div class="hint">Finds pages that contain all of your words. Each tab searches one system.</div>
+    <div id="results"></div>
+  </div>
+</div>
+<script>
+const results = document.getElementById('results');
+const input = document.getElementById('q');
+const tabs = [...document.querySelectorAll('[role="tab"]')];
+let source = 'Wiki';
+
+const escapeHtml = (text) => text.replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+const search = async () => {
+  const q = input.value.trim();
+  if (!q) { results.innerHTML = ''; return; }
+  const data = await fetch(`/api/keyword?q=${encodeURIComponent(q)}&source=${source}`).then((r) => r.json());
+  const label = tabs.find((tab) => tab.dataset.source === source).textContent;
+  if (!data.hits.length) {
+    results.innerHTML = `<div class="none"><b>0 results for "${escapeHtml(q)}" in ${label}</b>No page contains all of these words. Check your spelling, try other keywords, or look in another tab.</div>`;
+    return;
+  }
+  results.innerHTML = `<div class="count">${data.hits.length} result${data.hits.length > 1 ? 's' : ''} for "${escapeHtml(q)}" in ${label}</div>` +
+    data.hits.map((hit) => `<div class="hit"><a>${escapeHtml(hit.title)}</a><p>${hit.snippet}</p><small>${label} &middot; ${escapeHtml(hit.owner)} &middot; last edited ${hit.updated}</small></div>`).join('');
+};
+
+document.getElementById('form').addEventListener('submit', (event) => { event.preventDefault(); search(); });
+tabs.forEach((tab) => tab.addEventListener('click', () => {
+  source = tab.dataset.source;
+  tabs.forEach((other) => other.setAttribute('aria-selected', String(other === tab)));
+  search();
+}));
+</script>
+</body>
+</html>

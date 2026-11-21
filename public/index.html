@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Larkspur Ask</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28"><rect width="28" height="28" rx="8" fill="#1B1F2A"/><path d="M8 19V9m0 10h7" stroke="#7CF0C2" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="10.5" r="2.5" fill="#FFC857"/></svg>
+    <span>Larkspur <b>Ask</b></span>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" data-view="ask" aria-selected="true">Ask</button>
+    <button role="tab" data-view="index" aria-selected="false">Index</button>
+    <button role="tab" data-view="insights" aria-selected="false">Insights</button>
+  </nav>
+  <div class="health" id="health" aria-live="polite"></div>
+</header>
+
+<main>
+  <section id="view-ask" class="view ask">
+    <div class="talk">
+      <h1>What do you need to know?</h1>
+      <form id="ask-form" class="askbox">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="question" type="text" placeholder="Ask in your own words" autocomplete="off" aria-label="Your question">
+        <button type="submit" id="ask-button">Ask</button>
+      </form>
+      <div class="chips" id="chips">
+        <button type="button">How many vacation days do I get?</button>
+        <button type="button">Can I work from Portugal for a month?</button>
+        <button type="button">A customer wants a refund after three weeks</button>
+      </div>
+
+      <article class="answer" id="answer" hidden>
+        <header><span class="tag" id="answer-tag">Answer</span><span class="meta" id="answer-meta"></span></header>
+        <p id="answer-text" aria-live="polite"></p>
+        <footer id="answer-footer" hidden>
+          <span>Was this helpful?</span>
+          <button type="button" data-helpful="true">Yes</button>
+          <button type="button" data-helpful="false">No</button>
+          <span class="thanks" id="thanks" hidden>Thanks, saved.</span>
+        </footer>
+      </article>
+
+      <div class="sources" id="sources" hidden>
+        <h2>Sources</h2>
+        <ol id="source-list"></ol>
+      </div>
+    </div>
+
+    <aside class="hood" aria-label="Under the hood">
+      <h2>Under the hood <span>everything runs on this laptop</span></h2>
+      <ol class="steps">
+        <li id="step-embed">
+          <div class="head"><i>1</i><b>Question to numbers</b><em class="time"></em></div>
+          <div class="tool">Ollama &middot; <code id="embed-model">nomic-embed-text</code></div>
+          <div class="body">
+            <canvas id="vector" width="384" height="48" aria-label="The question as a vector"></canvas>
+            <code class="numbers" id="vector-numbers"></code>
+          </div>
+        </li>
+        <li id="step-search">
+          <div class="head"><i>2</i><b>Find the nearest passages</b><em class="time"></em></div>
+          <div class="tool">OpenSearch &middot; k-NN on <code>km_chunks</code></div>
+          <div class="body"><ul class="matches" id="matches"></ul></div>
+        </li>
+        <li id="step-prompt">
+          <div class="head"><i>3</i><b>Build the prompt</b><em class="time"></em></div>
+          <div class="tool">Node.js &middot; passages + question + rules</div>
+          <div class="body"><code class="numbers" id="prompt-info"></code></div>
+        </li>
+        <li id="step-done">
+          <div class="head"><i>4</i><b>Write the answer</b><em class="time"></em></div>
+          <div class="tool">Ollama &middot; <code id="chat-model">qwen3:8b</code> &middot; local</div>
+          <div class="body"><code class="numbers" id="speed"></code></div>
+        </li>
+      </ol>
+    </aside>
+  </section>
+
+  <section id="view-index" class="view" hidden>
+    <div class="pagehead">
+      <div>
+        <h1>The index</h1>
+        <p>From scattered files to passages the layer can search by meaning.</p>
+      </div>
+      <button type="button" class="primary" id="rebuild">Rebuild index</button>
+    </div>
+    <div class="pipeline">
+      <div class="stage" id="stage-collect"><span>1 &middot; Collect</span><b>-</b><small>files read</small><code>Node.js &middot; fs</code></div>
+      <div class="stage" id="stage-prepare"><span>2 &middot; Prepare</span><b>-</b><small>passages</small><code>split by paragraph</code></div>
+      <div class="stage" id="stage-embed"><span>3 &middot; Embed</span><b>-</b><small>vectors</small><code>Ollama &middot; nomic-embed-text</code></div>
+      <div class="stage" id="stage-store"><span>4 &middot; Store</span><b>-</b><small>indexed</small><code>OpenSearch &middot; knn_vector</code></div>
+    </div>
+    <div class="progress"><div id="progress-bar"></div></div>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <section id="view-insights" class="view" hidden>
+    <div class="pagehead">
+      <div>
+        <h1>Insights</h1>
+        <p>What people ask, and what the knowledge base could not answer.</p>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><b id="count-helpful">0</b><span>answers marked helpful</span></div>
+      <div class="card"><b id="count-unhelpful">0</b><span>answers marked not helpful</span></div>
+      <div class="card warn"><b id="count-gaps">0</b><span>questions with no answer</span></div>
+    </div>
+    <h2 class="sub">Gaps to fill</h2>
+    <ul class="gaps" id="gaps"></ul>
+  </section>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

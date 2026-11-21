@@ -1,0 +1,10 @@
+{
+  "name": "larkspur-knowledge-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "search:up": "docker compose up -d",
+    "ingest": "node ingest.mjs",
+    "start": "node server.mjs"
+  }
+}
